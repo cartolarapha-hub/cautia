@@ -1,11 +1,12 @@
 import { Logo } from '../ui/Logo'
 import { resetPopups, useStore } from '../../lib/store'
 import { NAV } from './Header'
+import { Stipple, WARM } from '../art/Stipple'
 
 export function Footer() {
   const { showPopup, reset } = useStore()
   return (
-    <footer className="on-dark bg-blue text-cream">
+    <footer className="on-dark relative isolate overflow-hidden bg-blue text-cream"><Stipple blobs={WARM.map(b => ({ ...b, y: b.y + 0.04, w: 0.85 }))} dots={14000} seed={31} className="opacity-80" />
       <div className="mx-auto max-w-[1320px] px-5 pb-10 pt-20 lg:px-10">
         <div className="grid gap-14 lg:grid-cols-[1.5fr_1fr_1fr]">
           <div>

@@ -6,6 +6,8 @@ import { Button } from '../components/ui/Button'
 import { CloseButton, Overlay } from '../components/ui/Overlay'
 import { IconAvaliar, IconCheck, IconEmpresa, IconSeguradora } from '../components/ui/Icons'
 import { ease, spring } from '../lib/motion'
+import { Stipple, WARM } from '../components/art/Stipple'
+import { Rings } from '../components/art/Rings'
 
 const PIC = { usa: IconEmpresa, desenvolve: IconAvaliar, seguradora: IconSeguradora }
 const panel = 'w-full max-w-[460px] overflow-hidden rounded-t-[28px] bg-cream text-ink sm:rounded-[28px]'
@@ -71,8 +73,9 @@ function Discovery({ onClose }: { onClose: () => void }) {
   const [ans, setAns] = useState<'sim' | 'nao' | null>(null)
   return (
     <div>
-      <div className="on-dark grain relative flex h-44 items-center justify-between overflow-hidden bg-blue px-7 text-cream">
-        <div aria-hidden className="glow-warm absolute inset-0 -z-10 opacity-60" />
+      <div className="on-dark relative isolate flex h-44 items-center justify-between overflow-hidden bg-blue px-7 text-cream">
+        <Stipple blobs={WARM} dots={6000} seed={2} />
+        <Rings className="pointer-events-none absolute -right-10 -top-12 w-[260px] text-cream/60" />
         <p className="eyebrow max-w-[9rem] leading-relaxed text-cream/85">Seguros que cobrem o erro da IA</p>
         <motion.div initial={{ scale: 0.8, rotate: -6, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ ...spring, delay: 0.15 }} className="grid size-28 place-items-center rounded-[22%] border-[5px] border-sun">
           <span className="font-display text-[5.5rem] leading-none">0</span>

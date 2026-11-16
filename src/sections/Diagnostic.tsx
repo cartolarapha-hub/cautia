@@ -6,6 +6,7 @@ import { Reveal } from '../components/ui/Reveal'
 import { Button } from '../components/ui/Button'
 import { Eyebrow } from '../components/ui/Eyebrow'
 import { IconCheck } from '../components/ui/Icons'
+import { Stipple, WARM } from '../components/art/Stipple'
 import { ease } from '../lib/motion'
 
 interface Q { id: string; title: string; hint?: string; multi?: boolean; max?: number; options: { v: string; label: string }[] }
@@ -86,13 +87,17 @@ export function Diagnostic() {
       <div className="mx-auto max-w-[1320px] px-5 lg:px-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_.8fr] lg:items-end">
           <div><Reveal><Eyebrow n="04" className="text-blue">Diagnóstico interativo</Eyebrow></Reveal>
-            <Reveal delay={0.05}><h2 className="mt-6 max-w-3xl text-[clamp(2.4rem,5vw,4.4rem)] leading-[1.02] text-ink">Cinco perguntas. <span className="text-blue">Um primeiro retrato do seu risco.</span></h2></Reveal></div>
+            <Reveal delay={0.05}><h2 className="mt-6 max-w-3xl text-[clamp(2.5rem,5.2vw,4.8rem)] leading-[1] text-ink">Cinco perguntas. <em>Um primeiro retrato do seu risco.</em></h2></Reveal></div>
           <Reveal delay={0.1}><p className="max-w-md text-[17px] leading-relaxed text-ink/75 lg:justify-self-end">Uma demonstração de como a CAUTIA começa a conversa. O caminho muda conforme as suas respostas. Dica: use as teclas A, B, C para responder.</p></Reveal>
         </div>
 
         <div className="hair mt-14 grid overflow-hidden rounded-[var(--radius-panel)] border bg-paper lg:grid-cols-[.78fr_1.5fr]">
-          <aside aria-label="Seu retrato" className={`on-dark hair relative flex flex-col p-7 transition-colors duration-700 sm:p-9 lg:border-r ${sole ? 'bg-navy' : 'bg-blue'} text-cream`}>
-            <div className="flex items-center justify-between"><p className="eyebrow text-sun">Seu retrato</p><p className="eyebrow tabular text-cream/85" aria-live="polite">{progress}/{qs.length}</p></div>
+          <aside aria-label="Seu retrato" className={`on-dark hair relative isolate flex flex-col overflow-hidden p-7 transition-colors duration-700 sm:p-9 lg:border-r ${sole ? 'bg-navy' : 'bg-blue'} text-cream`}>
+            <Stipple blobs={WARM.map(b => ({ ...b, w: 0.7 }))} dots={9000} seed={4} className="opacity-70" />
+            <div className="pointer-events-none absolute -bottom-24 -right-24 w-[300px] opacity-70" aria-hidden>
+              <svg viewBox="0 0 200 200" fill="none">{Array.from({ length: qs.length }, (_, k) => { const sz = 30 + k * (160 / qs.length), x = 100 - sz / 2, filled = k < progress; return <motion.rect key={k} x={x} y={x} width={sz} height={sz} rx={sz * 0.22} stroke={filled ? '#ffff71' : '#f4f1ea'} strokeWidth={filled ? 2.4 : 1} initial={false} animate={{ opacity: filled ? 1 : 0.28 }} transition={{ duration: 0.6 }} /> })}</svg>
+            </div>
+            <div className="relative flex items-center justify-between"><p className="eyebrow text-sun">Seu retrato</p><p className="eyebrow tabular text-cream/85" aria-live="polite">{progress}/{qs.length}</p></div>
             <div className="mt-4 h-px bg-cream/20" role="progressbar" aria-label="Progresso do diagnóstico" aria-valuemin={0} aria-valuemax={qs.length} aria-valuenow={progress}><motion.div className="h-[3px] -translate-y-px bg-sun" animate={{ width: `${(progress / qs.length) * 100}%` }} transition={{ duration: 0.6, ease }} /></div>
             <ol className="mt-7 flex-1 space-y-1">
               {qs.map((qq, i) => {

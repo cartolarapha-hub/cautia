@@ -5,6 +5,9 @@ import { useStore, type Form } from '../lib/store'
 import { Logo } from '../components/ui/Logo'
 import { Button } from '../components/ui/Button'
 import { Overlay } from '../components/ui/Overlay'
+import { Stipple, WARM } from '../components/art/Stipple'
+import { Rings } from '../components/art/Rings'
+import { CONTATOS, SEGUROS } from '../components/StartPanel'
 import { IconAnalise, IconAvaliar, IconCheck, IconConhecer } from '../components/ui/Icons'
 import { ChoiceGroup, SelectField, TextField } from './fields'
 import { maskPhone, validate, type Errors } from './validation'
@@ -44,10 +47,25 @@ export function Checkout() {
   const okField = (k: keyof Form) => touched.has(k) && !validate(step, f)[k] && !!f[k]
 
   const download = () => {
-    const txt = `CAUTIA — resumo da solicitação demonstrativa\nReferência: ${s.ref}\n\nNENHUMA CONTRATAÇÃO REAL FOI REALIZADA.\n\nPerfil: ${PROFILES.find(p => p.id === s.profile)?.label}\nNecessidades: ${NEEDS.filter(n => s.needs.includes(n.id)).map(n => n.title).join('; ')}\n\nContato: ${f.nome} · ${f.email} · ${f.telefone}\nEmpresa: ${f.empresa} (${f.cargo})\nSetor: ${f.setor}\nUso de IA: ${f.usoIA}\nAplicações: ${f.aplicacoes.join(', ')}\nDecisões: ${f.decisoes}\nSeguros: ${f.seguros}\nObservações: ${f.notas || '—'}\n`
+    const txt = `CAUTIA — resumo da solicitação demonstrativa\nReferência: ${s.ref}\n\nNENHUMA CONTRATAÇÃO REAL FOI REALIZADA.\n\nPerfil: ${PROFILES.find(p => p.id === s.profile)?.label}\nNecessidades: ${NEEDS.filter(n => s.needs.includes(n.id)).map(n => n.title).join('; ')}\n\nContato: ${f.nome} · ${f.email} · ${f.telefone}\nEmpresa: ${f.empresa} (${f.cargo})\nSetor: ${f.setor}\nUso de IA: ${f.usoIA}\nAplicações: ${f.aplicacoes.join(', ')}\nDecisões: ${f.decisoes}\nSeguros: ${f.seguros}\nObservações: ${f.notas || '—'}\nSeguros hoje: ${SEGUROS.find(x => x.v === s.nSeguros)?.l ?? '—'}\nContato preferido: ${CONTATOS.find(c => c.v === s.contato)?.l ?? '—'}\n`
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain;charset=utf-8' })); a.download = `cautia-${s.ref}.txt`; a.click(); URL.revokeObjectURL(a.href)
   }
   const close = () => setCheckout(false)
+  const A = s.diag.answers
+  const express = s.diag.done && Object.keys(A).length > 0
+  const MAP: Record<string, Record<string, string>> = {
+    uso: { terceiros: 'Uso ferramentas prontas de terceiros', dev: 'Desenvolvo ou integro modelos', seg: 'Exposição já existente na carteira', nao: 'Estou avaliando adotar' },
+    decisoes: { nenhuma: 'Não', apoio: 'Sim, com revisão humana', sozinha: 'Sim, decide sozinha em alguns casos', nsei: 'Não sei' },
+    seguros: { nenhum: 'Nenhum', cyber: 'Cyber', rc: 'RC Profissional', ambos: 'Cyber e RC Profissional', nsei: 'Não sei', sim: 'Sim', nao: 'Não', revisando: 'Estamos revisando' },
+  }
+  const [expressDone, setExpressDone] = useState(false)
+  const useDiagnostic = () => {
+    const ap = (A.aplicacao as string[] | undefined) ?? []
+    setForm({ usoIA: MAP.uso[A.uso as string] ?? f.usoIA, aplicacoes: ap.filter(x => APLICACOES.includes(x)).length ? ap.filter(x => APLICACOES.includes(x)) : f.aplicacoes, decisoes: MAP.decisoes[A.decisoes as string] ?? f.decisoes, seguros: MAP.seguros[A.seguros as string] ?? f.seguros })
+    setExpressDone(true)
+  }
+  const NEXT = ['Continuar para informações da empresa', 'Continuar para a revisão', 'Enviar solicitação']
+  const BACK = ['Editar escolhas', 'Voltar para identificação', 'Voltar para informações da empresa']
   const editChoices = () => { setCheckout(false); setTimeout(() => document.getElementById('solicitar')?.scrollIntoView({ behavior: 'smooth' }), 250) }
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
   const profile = PROFILES.find(p => p.id === s.profile)
@@ -117,11 +135,21 @@ export function Checkout() {
                 <motion.div key={step} custom={dir} initial={{ opacity: 0, x: dir * 28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: dir * -28 }} transition={{ duration: 0.35, ease }} className="mt-10">
                   {step === 0 && (
                     <Section title="Identificação" sub="Para quem devemos direcionar o retorno?" headRef={head}>
+                      {express && (
+                        <div className="rounded-[var(--radius-ctl)] border border-blue/25 bg-white p-4">
+                          <p className="eyebrow text-center text-[11px] text-blue">Atalho</p>
+                          <button type="button" onClick={useDiagnostic} disabled={expressDone} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-ctl)] bg-sun px-4 text-[15px] font-semibold text-blue transition-colors hover:bg-cream disabled:cursor-default disabled:bg-blue disabled:text-cream">{expressDone ? <><IconCheck size={15} /> Respostas do diagnóstico aplicadas à etapa 2</> : 'Usar respostas do diagnóstico'}</button>
+                          <p className="mt-2 text-center text-[12.5px] text-ink/70">Preenche a etapa de informações da empresa. Você poderá editar.</p>
+                          <div className="relative my-4 text-center"><span className="absolute inset-x-0 top-1/2 h-px bg-blue/20" /><span className="relative bg-white px-3 text-[12px] text-ink/70">ou preencha abaixo</span></div>
+                        </div>
+                      )}
+                      <h3 className="font-display text-[1.6rem] leading-none">Contato</h3>
                       <TextField label="Nome completo" value={f.nome} onChange={upd('nome')} onBlur={blur('nome')} autoComplete="name" valid={okField('nome')} {...field('nome')} />
                       <div className="grid gap-5 sm:grid-cols-2">
                         <TextField label="E-mail" type="email" inputMode="email" value={f.email} onChange={upd('email')} onBlur={blur('email')} autoComplete="email" placeholder="nome@empresa.com.br" valid={okField('email')} {...field('email')} />
                         <TextField label="Telefone" type="tel" inputMode="tel" value={f.telefone} onChange={v => upd('telefone')(maskPhone(v))} onBlur={blur('telefone')} autoComplete="tel" placeholder="(11) 91234-5678" valid={okField('telefone')} {...field('telefone')} />
                       </div>
+ <h3 className="pt-3 font-display text-[1.6rem] leading-none">Empresa</h3>
                       <div className="grid gap-5 sm:grid-cols-2">
                         <TextField label="Empresa" value={f.empresa} onChange={upd('empresa')} onBlur={blur('empresa')} autoComplete="organization" valid={okField('empresa')} {...field('empresa')} />
                         <TextField label="Cargo" value={f.cargo} onChange={upd('cargo')} onBlur={blur('cargo')} autoComplete="organization-title" valid={okField('cargo')} {...field('cargo')} />
@@ -147,7 +175,7 @@ export function Checkout() {
                   {step === 2 && (
                     <Section title="Revisão" sub="Confira os dados. Você pode editar qualquer bloco." headRef={head}>
                       <Review title="Contato" onEdit={() => go(0)} rows={[['Nome', f.nome], ['E-mail', f.email], ['Telefone', f.telefone], ['Empresa', `${f.empresa}, ${f.cargo}`]]} />
-                      <Review title="Informações empresariais" onEdit={() => go(1)} rows={[['Setor', f.setor], ['Relação com IA', f.usoIA], ['Aplicações', f.aplicacoes.join(', ')], ['Decisões relevantes', f.decisoes], ['Seguros', f.seguros], ['Observações', f.notas || '—']]} />
+                      <Review title="Informações empresariais" onEdit={() => go(1)} rows={[['Setor', f.setor], ['Relação com IA', f.usoIA], ['Aplicações', f.aplicacoes.join(', ')], ['Decisões relevantes', f.decisoes], ['Seguros', f.seguros], ['Observações', f.notas || '—'], ...(s.nSeguros ? [['Seguros hoje (início)', SEGUROS.find(x => x.v === s.nSeguros)?.l ?? '']] as [string, string][] : []), ...(s.contato ? [['Contato preferido', CONTATOS.find(c => c.v === s.contato)?.l ?? '']] as [string, string][] : [])]} />
                       <PaySim />
                       <div>
                         <label className="flex cursor-pointer items-start gap-3.5 rounded-[var(--radius-ctl)] border border-blue/25 bg-white p-4 transition-colors hover:border-blue">
@@ -161,8 +189,8 @@ export function Checkout() {
                   {step === 3 && <Done head={head} refNum={s.ref} name={f.nome} onDownload={download} onNew={() => { reset(); setCheckout(false); scrollTo({ top: 0 }) }} onClose={close} />}
                   {step < 3 && (
                     <div className="mt-12 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      {step > 0 ? <Button variant="quiet" className="text-blue" onClick={() => go(step - 1)}>← Voltar</Button> : <Button variant="quiet" className="text-blue" onClick={editChoices}>← Editar escolhas</Button>}
-                      <Button size="lg" arrow loading={loading} onClick={next}>{step === 2 ? (loading ? 'Enviando' : 'Enviar solicitação') : loading ? 'Validando' : 'Continuar'}</Button>
+                      {step > 0 ? <Button variant="quiet" className="text-blue" onClick={() => go(step - 1)}>← {BACK[step]}</Button> : <Button variant="quiet" className="text-blue" onClick={editChoices}>← {BACK[0]}</Button>}
+                      <Button size="lg" arrow loading={loading} onClick={next}>{loading ? (step === 2 ? 'Enviando' : 'Validando') : NEXT[step]}</Button>
                     </div>
                   )}
                 </motion.div>
@@ -236,30 +264,34 @@ function Done({ head, refNum, name, onDownload, onNew, onClose }: { head: React.
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
   return (
     <div className="pb-6">
-      <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={spring} className="grid size-[72px] place-items-center rounded-[22%] bg-blue">
-        <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden><motion.path d="M7 16.5l6 6L25 9.5" stroke="#ffff71" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3, duration: 0.5, ease }} /></svg>
-      </motion.div>
-      <p className="eyebrow mt-8 text-blue">Fim da demonstração</p>
-      <h2 ref={head} tabIndex={-1} className="mt-3 text-[clamp(2.4rem,5vw,3.8rem)] leading-[1.02] outline-none">Solicitação demonstrativa <span className="text-blue">registrada.</span></h2>
-      <p className="mt-4 max-w-xl text-[18px] leading-relaxed text-ink/75">{name.split(' ')[0]}, você percorreu o fluxo completo de solicitação da CAUTIA.</p>
-
-      <div className="relative mt-9 flex max-w-lg overflow-hidden rounded-[var(--radius-panel)] bg-blue text-cream">
-        <div className="flex-1 p-6"><p className="eyebrow text-cream/85">Número de referência (demonstrativo)</p><p className="mt-2 font-mono text-[1.7rem] font-semibold tracking-wider text-sun" aria-live="polite">{refNum}</p></div>
-        <span aria-hidden className="relative my-3 w-px border-l-2 border-dashed border-cream/40"><i className="absolute -left-[9px] -top-6 size-4 rounded-full bg-paper" /><i className="absolute -bottom-6 -left-[9px] size-4 rounded-full bg-paper" /></span>
-        <div className="grid w-24 place-items-center p-3"><Logo variant="mark" tone="light" height={48} /></div>
+      <div className="on-dark relative isolate overflow-hidden rounded-[var(--radius-panel)] bg-blue p-7 text-cream sm:p-12">
+        <Stipple blobs={WARM} dots={16000} seed={17} className="[mask-image:linear-gradient(to_top,#000_10%,transparent_62%)]" />
+        <Rings className="pointer-events-none absolute -right-24 -top-24 w-[520px] text-cream/60" />
+        <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={spring} className="relative grid size-[72px] place-items-center rounded-[22%] bg-sun">
+          <svg width="38" height="38" viewBox="0 0 32 32" aria-hidden><motion.path d="M7 16.5l6 6L25 9.5" stroke="#1e4f9a" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.3, duration: 0.5, ease }} /></svg>
+        </motion.div>
+        <p className="eyebrow relative mt-8 text-cream">Fim da demonstração</p>
+        <h2 ref={head} tabIndex={-1} className="relative mt-3 max-w-2xl text-[clamp(2.5rem,5.4vw,4.4rem)] leading-[1] outline-none">Solicitação demonstrativa <em>registrada.</em></h2>
+        <p className="relative mt-4 max-w-xl text-[18px] leading-relaxed text-cream/90">{name.split(' ')[0]}, você percorreu o fluxo completo de solicitação da CAUTIA.</p>
+        <div className="relative mt-9 flex max-w-lg overflow-hidden rounded-[var(--radius-ctl)] bg-paper text-ink">
+          <div className="flex-1 p-5"><p className="eyebrow text-[10.5px] text-blue">Número de referência (demonstrativo)</p><p className="mt-2 font-mono text-[1.6rem] font-semibold tracking-wider text-blue" aria-live="polite">{refNum}</p></div>
+          <span aria-hidden className="relative my-3 w-px border-l-2 border-dashed border-blue/40"><i className="absolute -left-[9px] -top-6 size-4 rounded-full bg-blue" /><i className="absolute -bottom-6 -left-[9px] size-4 rounded-full bg-blue" /></span>
+          <div className="grid w-24 place-items-center p-3"><Logo variant="mark" height={48} /></div>
+        </div>
       </div>
 
-      <div className="hair mt-8 max-w-lg rounded-[var(--radius-ctl)] border bg-white p-6">
-        <p className="eyebrow text-blue">Resumo</p>
-        <ul className="mt-3 divide-y divide-blue/15">{needs.map(n => <li key={n.id} className="py-3"><p className="font-semibold">{n.title}</p><p className="text-[14px] text-ink/65">{n.deliverable}</p></li>)}</ul>
+      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <div className="rounded-[var(--radius-ctl)] border border-blue/25 bg-white p-6">
+          <p className="eyebrow text-blue">Resumo</p>
+          <ul className="mt-3 divide-y divide-blue/15">{needs.map(n => <li key={n.id} className="py-3"><p className="font-semibold">{n.title}</p><p className="text-[14px] text-ink/70">{n.deliverable}</p></li>)}</ul>
+        </div>
+        <div>
+          <p className="eyebrow text-ink/70">Em uma contratação real, o modelo seguiria · ilustrativo</p>
+          <ol className="mt-4 space-y-3">{STEPS.slice(1).map((st, i) => <motion.li key={st.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease }} className="flex items-baseline gap-4 border-b border-blue/15 pb-3"><span className="tabular w-6 font-display text-2xl text-blue">{st.n}</span><span><span className="font-semibold">{st.title}</span> <span className="text-ink/75">· {st.line}</span></span></motion.li>)}</ol>
+        </div>
       </div>
 
-      <div className="mt-9 max-w-lg">
-        <p className="eyebrow text-ink/65">Em uma contratação real, o modelo seguiria · ilustrativo</p>
-        <ol className="mt-4 space-y-3">{STEPS.slice(1).map((st, i) => <motion.li key={st.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.1, duration: 0.5, ease }} className="flex items-baseline gap-4"><span className="tabular font-display text-2xl text-blue">{st.n}</span><span><span className="font-semibold">{st.title}</span> <span className="text-ink/70">· {st.line}</span></span></motion.li>)}</ol>
-      </div>
-
-      <p role="note" className="mt-9 max-w-lg rounded-[var(--radius-ctl)] bg-sun p-4 text-[14.5px] font-medium leading-snug text-blue">Nenhuma contratação real foi realizada. Nenhum dado foi enviado e nenhum pagamento foi processado.</p>
+      <p role="note" className="mt-8 rounded-[var(--radius-ctl)] bg-sun p-4 text-[14.5px] font-medium leading-snug text-blue">Nenhuma contratação real foi realizada. Nenhum dado foi enviado e nenhum pagamento foi processado.</p>
       <div className="mt-8 flex flex-wrap gap-3">
         <Button size="lg" onClick={onDownload}>Baixar resumo (.txt)</Button>
         <Button size="lg" variant="outline" className="text-blue" onClick={onNew}>Nova solicitação</Button>

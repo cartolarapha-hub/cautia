@@ -16,6 +16,8 @@ export interface Persisted {
   ref: string | null
   checkoutStarted: boolean
   paySim: boolean
+  nSeguros: string | null
+  contato: string | null
 }
 export type PopupKind = 'discovery' | 'profile' | 'continue' | 'confirm'
 export interface PopupState { kind: PopupKind; title?: string; message?: string }
@@ -24,7 +26,7 @@ export const emptyForm: Form = {
   nome: '', email: '', telefone: '', empresa: '', cargo: '', setor: '', usoIA: '', aplicacoes: [], decisoes: '', seguros: '', notas: '', consent: false,
 }
 const initial: Persisted = {
-  profile: null, needs: [], diag: { answers: {}, step: 0, done: false }, form: emptyForm, step: 0, ref: null, checkoutStarted: false, paySim: false,
+  profile: null, needs: [], diag: { answers: {}, step: 0, done: false }, form: emptyForm, step: 0, ref: null, checkoutStarted: false, paySim: false, nSeguros: null, contato: null,
 }
 const KEY = 'cautia.state.v1'
 

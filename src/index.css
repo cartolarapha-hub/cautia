@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource/belleza";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/inter";
 
 /* Tokens medidos diretamente das amostras do brand board (os nomes/códigos do PDF são inconsistentes com as cores exibidas). */
@@ -12,7 +13,7 @@
   --color-paper: #faf8f3;     /* derivado: tom mais claro do fundo */
   --color-sand: #e8e3d7;      /* derivado: tom mais escuro do fundo */
   --color-sun: #ffff71;       /* amostra "Lime" (amarelo) */
-  --font-display: "Belleza", "Optima", "Candara", Georgia, serif;
+  --font-display: "Newsreader Variable", "Newsreader", Georgia, serif;
   --font-sans: "Inter Variable", system-ui, sans-serif;
   --radius-ctl: 14px;
   --radius-panel: 28px;
@@ -21,9 +22,15 @@
 
 html { scroll-behavior: smooth; scroll-padding-top: 5rem; --focus: var(--color-blue); }
 body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; } }
 
-h1, h2, h3, .font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -.012em; text-wrap: balance; }
+@layer base { h1, h2, h3, .font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -.02em; text-wrap: balance; font-optical-sizing: auto; } }
+/* ênfase editorial: itálico verdadeiro em azul (padrão de títulos da marca na web) */
+h1 em, h2 em, h3 em, .em { font-style: italic; color: var(--color-blue); font-weight: inherit; }
+.on-dark h1 em, .on-dark h2 em, .on-dark h3 em, .on-dark .em { color: var(--color-sun); }
+/* marcador amarelo atrás de uma frase em itálico */
+.hl { background: var(--color-sun); padding: .02em .16em .06em; margin-inline: -.04em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.hl em { color: var(--color-blue); }
 
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
 .on-dark { --focus: var(--color-sun); }
@@ -44,3 +51,10 @@ h1, h2, h3, .font-display { font-family: var(--font-display); font-weight: 400; 
 .link-u:hover, .link-u[aria-current="true"] { background-size: 100% 1px; }
 .sr-only-focus:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .tabular { font-variant-numeric: tabular-nums; }
+
+@keyframes ring { 0% { transform: scale(.55); opacity: 0; } 18% { opacity: .9; } 100% { transform: scale(1.15); opacity: 0; } }
+.ring { transform-origin: center; animation: ring 7s var(--ease-out) infinite; }
+@keyframes marquee-in { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
+/* divisor recortado: semicírculos derivados do anel do símbolo */
+.scallop { height: 14px; background: radial-gradient(circle at 50% 0, var(--scallop, var(--color-cream)) 0 8px, transparent 8.5px) 0 0 / 22px 14px repeat-x; }
+.scallop-up { height: 14px; background: radial-gradient(circle at 50% 100%, var(--scallop, var(--color-cream)) 0 8px, transparent 8.5px) 0 0 / 22px 14px repeat-x; }
