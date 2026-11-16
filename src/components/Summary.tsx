@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { NEEDS, PROFILES } from '../data/content'
+import { brl, DESCONTO, MODALIDADES, NEEDS, precoFinal, PROFILES } from '../data/content'
 import { useStore } from '../lib/store'
 import { ease } from '../lib/motion'
 
@@ -7,6 +7,9 @@ export function Summary({ onEditProfile, onEditNeeds, dark = false }: { onEditPr
   const { s } = useStore()
   const profile = PROFILES.find(p => p.id === s.profile)
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
+  const mod = MODALIDADES.find(m => m.id === s.modalidade)!
+  const total = precoFinal(s.modalidade, s.desconto)
+  const off = s.desconto && mod.price > 0
   const muted = dark ? 'text-cream/85' : 'text-ink/65'
   const edit = 'rounded px-1 text-[13px] font-medium normal-case tracking-normal underline underline-offset-4 hover:text-blue'
   return (
@@ -32,7 +35,13 @@ export function Summary({ onEditProfile, onEditNeeds, dark = false }: { onEditPr
       </div>
       <div className="pt-5">
         <dt className={`eyebrow ${muted}`}>Valor</dt>
-        <dd className="mt-1"><span className="block font-display text-xl">A definir</span><span className={`mt-2 block text-[13px] leading-snug ${muted}`}>Demonstração: nenhum preço, apólice ou cobertura foi definido.</span></dd>
+        <dd className="mt-2 space-y-1.5">
+          <span className="flex justify-between gap-4"><span>{mod.title}</span><span className="font-semibold tabular">{mod.price ? brl(mod.price) : 'R$ 0,00'}</span></span>
+          {off && <span className="flex justify-between gap-4 text-blue"><span>Plano anual · fase de teste ({DESCONTO * 100}% off)</span><span className="font-semibold tabular">−{brl(mod.price - total)}</span></span>}
+          <span className={`block text-[13px] leading-snug ${muted}`}>Intermediação da apólice: sem custo direto (comissão paga pela seguradora).</span>
+          <span className="flex items-baseline justify-between gap-4 border-t border-current/15 pt-3"><span className="font-semibold">Total hoje</span><span className="font-display text-[1.6rem] leading-none tabular">{brl(total)}</span></span>
+          <span className={`block text-[12.5px] ${muted}`}>Demonstração: nada é cobrado.</span>
+        </dd>
       </div>
     </dl>
   )

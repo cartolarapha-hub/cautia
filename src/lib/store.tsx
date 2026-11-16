@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Need, Profile } from '../data/content'
+import type { Modalidade, Need, Profile } from '../data/content'
 
 export interface Form {
   nome: string; email: string; telefone: string; empresa: string; cargo: string
@@ -18,15 +18,17 @@ export interface Persisted {
   paySim: boolean
   nSeguros: string | null
   contato: string | null
+  modalidade: Modalidade
+  desconto: boolean
 }
-export type PopupKind = 'discovery' | 'profile' | 'continue' | 'confirm'
+export type PopupKind = 'discovery' | 'profile' | 'continue' | 'confirm' | 'discount'
 export interface PopupState { kind: PopupKind; title?: string; message?: string }
 
 export const emptyForm: Form = {
   nome: '', email: '', telefone: '', empresa: '', cargo: '', setor: '', usoIA: '', aplicacoes: [], decisoes: '', seguros: '', notas: '', consent: false,
 }
 const initial: Persisted = {
-  profile: null, needs: [], diag: { answers: {}, step: 0, done: false }, form: emptyForm, step: 0, ref: null, checkoutStarted: false, paySim: false, nSeguros: null, contato: null,
+  profile: null, needs: [], diag: { answers: {}, step: 0, done: false }, form: emptyForm, step: 0, ref: null, checkoutStarted: false, paySim: false, nSeguros: null, contato: null, modalidade: 'projeto', desconto: false,
 }
 const KEY = 'cautia.state.v1'
 

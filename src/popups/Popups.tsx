@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { PROFILES, type Profile } from '../data/content'
+import { brl, CUPOM, DESCONTO, HONORARIO, precoFinal, PROFILES, type Profile } from '../data/content'
+import { go, useRoute } from '../lib/router'
 import { canShow, markShown, useStore } from '../lib/store'
 import { Button } from '../components/ui/Button'
 import { CloseButton, Overlay } from '../components/ui/Overlay'
@@ -37,11 +38,31 @@ export function Popups() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Desconto da fase de teste: na LP, quando a seção de preço aparece; no produto, após alguns segundos. Uma vez por dia.
+  const route = useRoute()
+  useEffect(() => {
+    if (!canShow('discount') || s.desconto) return
+    let done = false
+    const fire = () => { if (done) return; done = true; markShown('discount'); showPopup({ kind: 'discount' }) }
+    const whenFree = () => { const id = setInterval(() => { if (!document.querySelector('[role="dialog"]')) { clearInterval(id); fire() } }, 1200) }
+    if (route === 'produto') { const t = setTimeout(whenFree, 6000); return () => clearTimeout(t) }
+    const el = document.getElementById('preco'); if (!el) return
+    const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { io.disconnect(); setTimeout(whenFree, 1200) } }, { threshold: 0.4 })
+    io.observe(el); return () => io.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route])
+
   const kind = popup?.kind
   const steps = s.checkoutStarted && s.step < 3 ? { n: s.step, of: 4, where: `checkout, etapa ${s.step + 1} de 4` } : { n: s.diag.step, of: 5, where: `diagnóstico, pergunta ${s.diag.step + 1}` }
   return (
     <>
       <Overlay open={kind === 'discovery'} onClose={closePopup} label="Conheça os riscos de IA" className={panel}><Discovery onClose={closePopup} /></Overlay>
+      <Overlay open={kind === 'discount'} onClose={closePopup} label="Desconto da fase de teste" className={panel}>
+        <Discount onClose={closePopup} onApply={() => {
+          set({ desconto: true, modalidade: 'projeto' }); closePopup()
+          setTimeout(() => { go('produto', 'comprar'); showPopup({ kind: 'confirm', title: 'Desconto aplicado', message: `${DESCONTO * 100}% off no Projeto completo (${CUPOM}). Total: ${brl(precoFinal('projeto', true))}.` }) }, 350)
+        }} />
+      </Overlay>
       <Overlay open={kind === 'profile'} onClose={closePopup} label="Escolha seu perfil" className={panel}>
         <ProfilePick onClose={closePopup} onPick={p => { set({ profile: p }); showPopup({ kind: 'confirm', title: 'Perfil definido', message: `Vamos considerar: ${PROFILES.find(x => x.id === p)!.label}.` }) }} />
       </Overlay>
@@ -150,6 +171,30 @@ function Confirm({ title, message, onClose, onNext }: { title?: string; message?
         <Button variant="quiet" className="text-blue" onClick={onClose}>Fechar</Button>
       </motion.div>
       <div aria-hidden className="mt-6 h-0.5 overflow-hidden rounded-full bg-blue/15"><motion.div className="h-full bg-blue" initial={{ width: '100%' }} animate={{ width: paused ? '100%' : 0 }} transition={{ duration: paused ? 0.2 : 5, ease: 'linear' }} /></div>
+    </div>
+  )
+}
+
+function Discount({ onClose, onApply }: { onClose: () => void; onApply: () => void }) {
+  return (
+    <div>
+      <div className="on-dark relative isolate overflow-hidden bg-blue px-7 pb-7 pt-6 text-cream">
+        <Stipple blobs={WARM} dots={7000} seed={8} className="[mask-image:linear-gradient(to_top,#000,transparent_80%)]" />
+        <CloseButton onClick={onClose} className="absolute right-2 top-2 z-10 text-cream" />
+        <p className="eyebrow text-sun">Fase de teste da CAUTIA</p>
+        <motion.p initial={{ opacity: 0, y: 16, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ ...spring, delay: 0.1 }} className="mt-3 font-display text-[5.2rem] leading-[.85] tracking-[-.04em]">{DESCONTO * 100}%<em className="ml-2 text-[3rem] tracking-normal">off</em></motion.p>
+        <p className="mt-3 text-[16px] text-cream/95">no plano anual</p>
+      </div>
+      <div className="p-7 sm:p-8">
+        <motion.h2 {...stagger(0)} className="text-[1.7rem] leading-[1.1]">Projeto completo, com monitoramento anual</motion.h2>
+        <motion.p {...stagger(1)} className="mt-4 flex items-baseline gap-3"><span className="text-[1.2rem] text-ink/70 line-through tabular">{brl(HONORARIO)}</span><span className="font-display text-[2.6rem] leading-none tabular">{brl(precoFinal('projeto', true))}</span></motion.p>
+        <motion.p {...stagger(2)} className="mt-3 text-[14.5px] leading-relaxed text-ink/80">Desconto sobre o honorário do projeto, válido durante a fase de teste. A intermediação da apólice segue sem custo direto.</motion.p>
+        <motion.div {...stagger(3)} className="mt-6 flex flex-wrap gap-3">
+          <Button data-autofocus arrow onClick={onApply}>Aplicar desconto</Button>
+          <Button variant="quiet" className="text-blue" onClick={onClose}>Agora não</Button>
+        </motion.div>
+        <p className="mt-5 text-[12px] leading-snug text-ink/70">Demonstração: valores de simulação baseados no plano financeiro. Nada é cobrado.</p>
+      </div>
     </div>
   )
 }

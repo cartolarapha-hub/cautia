@@ -96,3 +96,36 @@ export const MARKET = [
 
 export const SETORES = ['Tecnologia / Software', 'Serviços jurídicos', 'Consultoria', 'Saúde', 'Financeiro', 'Indústria', 'Varejo', 'Educação', 'Seguros', 'Outro']
 export const APLICACOES = ['Atendimento ao cliente', 'Textos e documentos', 'Análise de crédito ou risco', 'Desenvolvimento de software', 'Tratamento de dados pessoais', 'Operações internas']
+
+// ---------- Preços e oferta (fonte: Plano Financeiro CAUTIA, aba "Notas CAUTIA") ----------
+// Honorário de consultoria: dado do grupo. Comissão e prêmio: estimativas do plano, sem fonte primária.
+export const HONORARIO = 35000
+export const PREMIO_REF = 30000
+export const brl = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+
+export type Modalidade = 'projeto' | 'intermediacao'
+export const MODALIDADES: { id: Modalidade; title: string; price: number; unit: string; desc: string; includes: string[] }[] = [
+  { id: 'projeto', title: 'Projeto completo', price: HONORARIO, unit: 'por projeto',
+    desc: 'Consultoria da CAUTIA do diagnóstico à emissão da apólice.',
+    includes: ['Diagnóstico técnico do risco de IA', 'Raio-X das apólices que você já tem', 'Estruturação: remoção de exclusões e endosso de IA', 'Colocação em seguradora local', 'Emissão da apólice e monitoramento anual'] },
+  { id: 'intermediacao', title: 'Somente intermediação', price: 0, unit: 'sem honorário',
+    desc: 'Colocação e emissão da apólice. A CAUTIA é remunerada por comissão da seguradora.',
+    includes: ['Colocação em seguradora local', 'Emissão da apólice', 'Renovação e monitoramento anual'] },
+]
+
+export const FAQ = [
+  { q: 'Quanto custa o projeto da CAUTIA?', a: `O projeto de consultoria tem honorário de ${brl(HONORARIO)} por projeto. A intermediação da apólice não tem custo direto para você: a CAUTIA é remunerada por comissão paga pela seguradora, que já está embutida no prêmio.` },
+  { q: 'E o preço do seguro em si?', a: `O prêmio é definido pela seguradora na etapa de colocação, conforme o seu risco. Para planejamento, usamos a referência de ${brl(PREMIO_REF)} por ano, que é uma premissa do nosso plano e não uma cotação.` },
+  { q: 'Preciso contratar o projeto para ter a apólice?', a: 'Não. A consultoria é opcional. Você pode contratar somente a intermediação, sem honorário, e a CAUTIA recebe apenas a comissão da seguradora.' },
+  { q: 'A CAUTIA assume o risco do meu seguro?', a: 'Não. A CAUTIA é uma corretora especializada: não assumimos o risco, nós o colocamos junto a uma seguradora.' },
+  { q: 'O que é o endosso de IA?', a: 'É uma alteração na apólice que remove exclusões ligadas a IA e cria uma cobertura específica para o risco de IA. Criar esse endosso é parte da etapa de estruturação.' },
+  { q: 'Esta página é uma contratação real?', a: 'Não. Este site é uma demonstração: nenhum pagamento é processado e nenhuma apólice é emitida. Os valores vêm das premissas do plano financeiro da CAUTIA.' },
+]
+
+// Promoção da fase de teste (definida pela CAUTIA): 35% de desconto no plano anual = Projeto completo (inclui monitoramento anual).
+export const DESCONTO = 0.35
+export const CUPOM = 'TESTE35'
+export const precoFinal = (m: Modalidade, desconto: boolean) => {
+  const base = MODALIDADES.find(x => x.id === m)!.price
+  return desconto && base > 0 ? Math.round(base * (1 - DESCONTO)) : base
+}

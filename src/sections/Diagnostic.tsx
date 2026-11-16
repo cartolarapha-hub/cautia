@@ -86,7 +86,7 @@ export function Diagnostic() {
     <section id="diagnostico" className="bg-cream py-24 lg:py-36">
       <div className="mx-auto max-w-[1320px] px-5 lg:px-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_.8fr] lg:items-end">
-          <div><Reveal><Eyebrow n="04" className="text-blue">Diagnóstico interativo</Eyebrow></Reveal>
+          <div><Reveal><Eyebrow n="05" className="text-blue">Diagnóstico grátis</Eyebrow></Reveal>
             <Reveal delay={0.05}><h2 className="mt-6 max-w-3xl text-[clamp(2.5rem,5.2vw,4.8rem)] leading-[1] text-ink">Cinco perguntas. <em>Um primeiro retrato do seu risco.</em></h2></Reveal></div>
           <Reveal delay={0.1}><p className="max-w-md text-[17px] leading-relaxed text-ink/75 lg:justify-self-end">Uma demonstração de como a CAUTIA começa a conversa. O caminho muda conforme as suas respostas. Dica: use as teclas A, B, C para responder.</p></Reveal>
         </div>

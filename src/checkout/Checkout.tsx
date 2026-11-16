@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-import { APLICACOES, NEEDS, PROFILES, SETORES, STEPS } from '../data/content'
+import { APLICACOES, brl, MODALIDADES, NEEDS, precoFinal, PROFILES, SETORES, STEPS } from '../data/content'
 import { useStore, type Form } from '../lib/store'
 import { Logo } from '../components/ui/Logo'
 import { Button } from '../components/ui/Button'
@@ -47,7 +47,7 @@ export function Checkout() {
   const okField = (k: keyof Form) => touched.has(k) && !validate(step, f)[k] && !!f[k]
 
   const download = () => {
-    const txt = `CAUTIA — resumo da solicitação demonstrativa\nReferência: ${s.ref}\n\nNENHUMA CONTRATAÇÃO REAL FOI REALIZADA.\n\nPerfil: ${PROFILES.find(p => p.id === s.profile)?.label}\nNecessidades: ${NEEDS.filter(n => s.needs.includes(n.id)).map(n => n.title).join('; ')}\n\nContato: ${f.nome} · ${f.email} · ${f.telefone}\nEmpresa: ${f.empresa} (${f.cargo})\nSetor: ${f.setor}\nUso de IA: ${f.usoIA}\nAplicações: ${f.aplicacoes.join(', ')}\nDecisões: ${f.decisoes}\nSeguros: ${f.seguros}\nObservações: ${f.notas || '—'}\nSeguros hoje: ${SEGUROS.find(x => x.v === s.nSeguros)?.l ?? '—'}\nContato preferido: ${CONTATOS.find(c => c.v === s.contato)?.l ?? '—'}\n`
+    const txt = `CAUTIA — resumo da solicitação demonstrativa\nReferência: ${s.ref}\n\nNENHUMA CONTRATAÇÃO REAL FOI REALIZADA.\n\nPerfil: ${PROFILES.find(p => p.id === s.profile)?.label}\nModalidade: ${mod.title} (${mod.price ? brl(mod.price) : 'sem honorário'})${off ? ` — desconto da fase de teste de 35%: ${brl(total)}` : ''}\nTotal demonstrativo: ${brl(total)}\nFoco: ${NEEDS.filter(n => s.needs.includes(n.id)).map(n => n.title).join('; ')}\n\nContato: ${f.nome} · ${f.email} · ${f.telefone}\nEmpresa: ${f.empresa} (${f.cargo})\nSetor: ${f.setor}\nUso de IA: ${f.usoIA}\nAplicações: ${f.aplicacoes.join(', ')}\nDecisões: ${f.decisoes}\nSeguros: ${f.seguros}\nObservações: ${f.notas || '—'}\nSeguros hoje: ${SEGUROS.find(x => x.v === s.nSeguros)?.l ?? '—'}\nContato preferido: ${CONTATOS.find(c => c.v === s.contato)?.l ?? '—'}\n`
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain;charset=utf-8' })); a.download = `cautia-${s.ref}.txt`; a.click(); URL.revokeObjectURL(a.href)
   }
   const close = () => setCheckout(false)
@@ -70,24 +70,30 @@ export function Checkout() {
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
   const profile = PROFILES.find(p => p.id === s.profile)
 
+  const mod = MODALIDADES.find(m => m.id === s.modalidade)!
+  const total = precoFinal(s.modalidade, s.desconto)
+  const off = s.desconto && mod.price > 0
   const SummaryBody = (
     <div>
       <ul className="space-y-4" aria-label="Itens da solicitação">
+        <li className="flex items-start gap-4">
+          <span className="relative grid size-16 shrink-0 place-items-center rounded-[22%] border border-blue/20 bg-paper"><Logo variant="mark" height={38} /><span className="tabular absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-blue text-[11px] font-semibold text-cream">1</span></span>
+          <span className="min-w-0 flex-1"><span className="block text-[15px] font-semibold leading-snug">Projeto CAUTIA · {mod.title}</span><span className="block text-[13px] leading-snug text-ink/70">{mod.unit}</span></span>
+          <span className="text-[14px] font-semibold tabular">{mod.price ? brl(mod.price) : 'R$ 0,00'}</span>
+        </li>
         {needs.map(n => { const I = NEED_ICON[n.id]; return (
-          <li key={n.id} className="flex items-center gap-4">
-            <span className="relative grid size-16 shrink-0 place-items-center rounded-[22%] border border-blue/20 bg-paper text-blue"><I size={32} /><span className="tabular absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-blue text-[11px] font-semibold text-cream">1</span></span>
-            <span className="min-w-0 flex-1"><span className="block text-[15px] font-semibold leading-snug">{n.title}</span><span className="block text-[13px] leading-snug text-ink/65">{n.deliverable}</span></span>
-            <span className="text-[13px] font-medium text-ink/70">A definir</span>
-          </li>) })}
+          <li key={n.id} className="flex items-center gap-3 pl-1 text-[14px]"><span className="text-blue"><I size={22} /></span><span className="flex-1 leading-snug">Foco: {n.title}</span></li>) })}
       </ul>
       <dl className="hair mt-6 space-y-3 border-t pt-5 text-[15px]">
         <div className="flex justify-between"><dt className="text-ink/70">Perfil</dt><dd className="text-right font-medium">{profile?.short}</dd></div>
         {f.nome && step > 0 && <div className="flex justify-between gap-4"><dt className="text-ink/70">Contato</dt><dd className="text-right font-medium">{f.nome.split(' ')[0]}{f.empresa && `, ${f.empresa}`}</dd></div>}
-        <div className="flex justify-between"><dt className="text-ink/70">Subtotal</dt><dd className="font-medium">A definir</dd></div>
-        <div className="hair flex items-baseline justify-between border-t pt-4"><dt className="font-semibold">Total</dt><dd className="font-display text-[1.6rem] leading-none">A definir</dd></div>
+        <div className="flex justify-between"><dt className="text-ink/70">Subtotal</dt><dd className="font-medium tabular">{mod.price ? brl(mod.price) : 'R$ 0,00'}</dd></div>
+        {off && <div className="flex justify-between gap-4 text-blue"><dt>Desconto plano anual · fase de teste (35%)</dt><dd className="font-semibold tabular">−{brl(mod.price - total)}</dd></div>}
+        <div className="flex justify-between"><dt className="text-ink/70">Intermediação da apólice</dt><dd className="font-medium">Sem custo direto</dd></div>
+        <div className="hair flex items-baseline justify-between border-t pt-4"><dt className="font-semibold">Total hoje</dt><dd className="font-display text-[1.8rem] leading-none tabular" aria-label={`Total ${brl(total)}`}>{brl(total)}</dd></div>
       </dl>
-      <p className="mt-4 text-[12.5px] leading-snug text-ink/65">Demonstração: nenhum preço, apólice ou cobertura foi definido, e nada será cobrado.</p>
-      {step < 3 && <button type="button" onClick={editChoices} className="mt-4 rounded text-[14px] font-medium text-blue underline underline-offset-4">Alterar perfil ou necessidades</button>}
+      <p className="mt-4 text-[12.5px] leading-snug text-ink/70">Demonstração: valores do plano financeiro da CAUTIA. Nada será cobrado e nenhuma apólice será emitida.</p>
+      {step < 3 && <button type="button" onClick={editChoices} className="mt-4 rounded text-[14px] font-medium text-blue underline underline-offset-4">Alterar modalidade, perfil ou foco</button>}
     </div>
   )
 
@@ -99,7 +105,7 @@ export function Checkout() {
           <div className="hair border-b bg-sand lg:hidden">
             <button type="button" aria-expanded={sumOpen} onClick={() => setSumOpen(v => !v)} className="mx-auto flex h-14 w-full max-w-xl items-center justify-between px-5 text-[15px]">
               <span className="flex items-center gap-2 font-medium text-blue">Resumo<motion.svg animate={{ rotate: sumOpen ? 180 : 0 }} width="14" height="14" viewBox="0 0 14 14" aria-hidden><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></motion.svg></span>
-              <span className="text-ink/70">{s.needs.length} item(ns) · <span className="font-semibold text-ink">A definir</span></span>
+              <span className="text-ink/70">Total · <span className="font-semibold text-ink tabular">{brl(total)}</span></span>
             </button>
             <AnimatePresence initial={false}>{sumOpen && <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} transition={{ duration: 0.4, ease }} className="overflow-hidden"><div className="mx-auto max-w-xl px-5 pb-6">{SummaryBody}</div></motion.div>}</AnimatePresence>
           </div>
@@ -186,7 +192,7 @@ export function Checkout() {
                       </div>
                     </Section>
                   )}
-                  {step === 3 && <Done head={head} refNum={s.ref} name={f.nome} onDownload={download} onNew={() => { reset(); setCheckout(false); scrollTo({ top: 0 }) }} onClose={close} />}
+                  {step === 3 && <Done head={head} refNum={s.ref} name={f.nome} onDownload={download} onNew={() => { reset(); setCheckout(false); scrollTo({ top: 0 }) }} onClose={close} mod={mod} total={total} />}
                   {step < 3 && (
                     <div className="mt-12 flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
                       {step > 0 ? <Button variant="quiet" className="text-blue" onClick={() => go(step - 1)}>← {BACK[step]}</Button> : <Button variant="quiet" className="text-blue" onClick={editChoices}>← {BACK[0]}</Button>}
@@ -259,7 +265,7 @@ function PaySim() {
   )
 }
 
-function Done({ head, refNum, name, onDownload, onNew, onClose }: { head: React.RefObject<HTMLHeadingElement | null>; refNum: string | null; name: string; onDownload: () => void; onNew: () => void; onClose: () => void }) {
+function Done({ head, refNum, name, onDownload, onNew, onClose, mod, total }: { head: React.RefObject<HTMLHeadingElement | null>; refNum: string | null; name: string; onDownload: () => void; onNew: () => void; onClose: () => void; mod: (typeof MODALIDADES)[number]; total: number }) {
   const { s } = useStore()
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
   return (
@@ -283,7 +289,8 @@ function Done({ head, refNum, name, onDownload, onNew, onClose }: { head: React.
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <div className="rounded-[var(--radius-ctl)] border border-blue/25 bg-white p-6">
           <p className="eyebrow text-blue">Resumo</p>
-          <ul className="mt-3 divide-y divide-blue/15">{needs.map(n => <li key={n.id} className="py-3"><p className="font-semibold">{n.title}</p><p className="text-[14px] text-ink/70">{n.deliverable}</p></li>)}</ul>
+          <p className="mt-3 flex items-baseline justify-between border-b border-blue/15 pb-3"><span className="font-semibold">Projeto CAUTIA · {mod.title}</span><span className="font-display text-[1.6rem] leading-none tabular">{brl(total)}</span></p>
+          <ul className="divide-y divide-blue/15">{needs.map(n => <li key={n.id} className="py-3"><p className="font-semibold">{n.title}</p><p className="text-[14px] text-ink/70">{n.deliverable}</p></li>)}</ul>
         </div>
         <div>
           <p className="eyebrow text-ink/70">Em uma contratação real, o modelo seguiria · ilustrativo</p>

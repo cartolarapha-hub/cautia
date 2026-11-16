@@ -1,5 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { NEEDS, PROFILES, type Need, type Profile } from '../data/content'
+import { useEffect, useRef, useState } from 'react'
+import { brl, DESCONTO, MODALIDADES, precoFinal, NEEDS, PROFILES, type Modalidade, type Need, type Profile } from '../data/content'
 import { useStore } from '../lib/store'
 import { Button } from './ui/Button'
 import { Summary } from './Summary'
@@ -30,16 +31,18 @@ function Step({ n, label, value, hint, children }: { n: number; label: string; v
 }
 
 /** Dossiê vivo: o objeto que se monta conforme o usuário escolhe. */
-function Dossier() {
+export function Dossier() {
   const { s } = useStore()
   const profile = PROFILES.find(p => p.id === s.profile)
   const needs = NEEDS.filter(n => s.needs.includes(n.id))
   const nPol = s.nSeguros === '1' ? 1 : s.nSeguros === '2' ? 2 : s.nSeguros === '3' ? 3 : 0
   const contato = CONTATOS.find(c => c.v === s.contato)
+  const mod = MODALIDADES.find(m => m.id === s.modalidade)!
   return (
     <div className="on-dark relative isolate aspect-[4/4.6] overflow-hidden rounded-[var(--radius-panel)] bg-blue text-cream">
       <Stipple blobs={WARM} dots={14000} seed={21} />
-      <p className="eyebrow absolute left-6 top-6 text-cream">Dossiê CAUTIA · demonstrativo</p>
+      <p className="eyebrow absolute left-6 top-6 text-cream">Seu dossiê · demonstrativo</p>
+      <AnimatePresence mode="wait"><motion.span key={mod.id} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute right-6 top-5 rounded-full bg-sun px-3.5 py-1.5 text-[12.5px] font-bold text-blue sm:right-9">{mod.price ? brl(precoFinal(mod.id, s.desconto)) : 'Sem honorário'}</motion.span></AnimatePresence>
       <LayoutGroup>
         <motion.div layout transition={spring} className="absolute inset-x-6 top-[16%] rounded-[16px] bg-paper p-5 text-ink shadow-[0_30px_60px_-30px_rgba(0,0,0,.6)] sm:inset-x-9 sm:p-6">
           <p className="eyebrow text-[10px] text-blue">Perfil</p>
@@ -71,7 +74,7 @@ function Dossier() {
   )
 }
 
-export function StartPanel({ onContinue, compact = false }: { onContinue: () => void; compact?: boolean }) {
+export function StartPanel({ onContinue, compact = false, selectorsOnly = false }: { onContinue: () => void; compact?: boolean; selectorsOnly?: boolean }) {
   const { s, set } = useStore()
   const toggle = (id: Need) => set({ needs: s.needs.includes(id) ? s.needs.filter(n => n !== id) : [...s.needs, id] })
   const ready = !!s.profile && s.needs.length > 0
@@ -79,9 +82,38 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
   const needsLabel = s.needs.length ? `${s.needs.length} escolhida${s.needs.length > 1 ? 's' : ''}` : undefined
   const segLabel = SEGUROS.find(x => x.v === s.nSeguros)?.l
 
+  const mod = MODALIDADES.find(m => m.id === s.modalidade)!
+  // Na página de produto a barra de compra só flutua quando a barra original (fim das opções) está fora da tela.
+  const selRef = useRef<HTMLDivElement>(null), barWrap = useRef<HTMLDivElement>(null), barEl = useRef<HTMLDivElement>(null)
+  const [selIn, setSelIn] = useState(false), [barIn, setBarIn] = useState(false), [h, setH] = useState(0)
+  useEffect(() => {
+    if (!selectorsOnly) return
+    const a = new IntersectionObserver(e => setSelIn(e[0].isIntersecting), { rootMargin: '-10% 0px -10% 0px' }), b = new IntersectionObserver(e => setBarIn(e[0].isIntersecting))
+    selRef.current && a.observe(selRef.current); barWrap.current && b.observe(barWrap.current)
+    return () => { a.disconnect(); b.disconnect() }
+  }, [selectorsOnly])
+  const floating = selectorsOnly && selIn && !barIn
+  useEffect(() => { if (barEl.current && !floating) setH(barEl.current.offsetHeight) })
   const selectors = (
     <div className="space-y-8">
-      <Step n={1} label="Seu perfil:" value={profile?.short}>
+      <Step n={1} label="Como quer contratar:" value={mod.title}>
+        <div role="radiogroup" aria-label="Modalidade" className="grid gap-3 sm:grid-cols-2">
+          {MODALIDADES.map(m => {
+            const on = s.modalidade === m.id
+            return (
+              <motion.button key={m.id} type="button" role="radio" aria-checked={on} onClick={() => set({ modalidade: m.id as Modalidade })} whileTap={{ scale: 0.98 }} transition={spring}
+                className={`relative overflow-hidden rounded-[var(--radius-ctl)] border-2 p-4 text-left transition-colors duration-300 ${on ? 'border-ink bg-sun/45' : 'border-blue/20 bg-paper hover:border-blue'}`}>
+                <span className="flex items-start justify-between gap-3"><span className="font-display text-[1.45rem] leading-tight">{m.title}</span>
+                  <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors ${on ? 'border-ink bg-ink text-sun' : 'border-blue/30'}`}>{on && <IconCheck size={12} />}</span></span>
+                <span className="mt-2 block">{s.desconto && m.price > 0 && <span className="mr-2 text-[15px] text-ink/70 line-through tabular">{brl(m.price)}</span>}<span className="font-display text-[1.9rem] leading-none tabular">{m.price ? brl(precoFinal(m.id, s.desconto)) : 'R$ 0'}</span> <span className="text-[13px] text-ink/75">{m.unit}</span>{s.desconto && m.price > 0 && <span className="ml-2 rounded-full bg-sun px-2 py-0.5 text-[11px] font-bold text-blue">{DESCONTO * 100}% OFF</span>}</span>
+                <span className="mt-2 block text-[13.5px] leading-snug text-ink/80">{m.desc}</span>
+              </motion.button>
+            )
+          })}
+        </div>
+      </Step>
+
+      <Step n={2} label="Seu perfil:" value={profile?.short}>
         <div role="radiogroup" aria-label="Seu perfil" className={`grid gap-3 ${compact ? 'grid-cols-3' : 'grid-cols-3'}`}>
           {PROFILES.map(p => {
             const on = s.profile === p.id, Icon = PROFILE_ICON[p.id]
@@ -100,7 +132,7 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
         <AnimatePresence mode="wait"><motion.p key={profile?.id ?? 'n'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="mt-3 min-h-[1.4rem] text-[14px] italic text-ink/75">{profile?.desc ?? 'Escolha o que melhor descreve você.'}</motion.p></AnimatePresence>
       </Step>
 
-      <Step n={2} label="O que você precisa:" value={needsLabel} hint="uma ou mais">
+      <Step n={3} label="O que você precisa:" value={needsLabel} hint="uma ou mais">
         <div className="space-y-3">
           {NEEDS.map((n, i) => {
             const on = s.needs.includes(n.id), Icon = NEED_ICON[n.id]
@@ -121,7 +153,7 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
         </div>
       </Step>
 
-      <Step n={3} label="Quantos seguros sua empresa tem hoje?" value={segLabel}>
+      <Step n={4} label="Quantos seguros sua empresa tem hoje?" value={segLabel}>
         <div role="radiogroup" aria-label="Quantidade de seguros" className="relative flex overflow-hidden rounded-full border-2 border-ink/80 bg-paper p-1">
           {SEGUROS.map(x => {
             const on = s.nSeguros === x.v
@@ -135,7 +167,7 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
         </div>
       </Step>
 
-      <Step n={4} label="Como prefere ser contatado?" value={CONTATOS.find(c => c.v === s.contato)?.l}>
+      <Step n={5} label="Como prefere ser contatado?" value={CONTATOS.find(c => c.v === s.contato)?.l}>
         <div role="radiogroup" aria-label="Preferência de contato" className="grid gap-3 sm:grid-cols-3">
           {CONTATOS.map(c => {
             const on = s.contato === c.v
@@ -152,11 +184,11 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
   )
 
   const bar = (
-    <div className={`sticky bottom-3 z-10 mt-8 rounded-[var(--radius-ctl)] bg-ink p-3.5 text-cream sm:rounded-[var(--radius-panel)] shadow-[0_20px_50px_-20px_rgba(15,34,68,.7)] sm:p-5`}>
+    <div ref={barEl} className={`${selectorsOnly ? (floating ? 'fixed inset-x-3 bottom-3 z-30 mx-auto max-w-[720px]' : 'relative') : 'sticky bottom-3 z-10 mt-8'} rounded-[var(--radius-ctl)] bg-ink p-3.5 text-cream sm:rounded-[var(--radius-panel)] shadow-[0_20px_50px_-20px_rgba(15,34,68,.7)] sm:p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
         <div className="min-w-0" role="status">
-          <p className="truncate text-[15px] font-semibold">{ready ? `${profile?.short} · ${s.needs.length} necessidade${s.needs.length > 1 ? 's' : ''}` : 'Escolha um perfil e ao menos uma necessidade'}</p>
-          <p className="mt-0.5 hidden text-[13px] text-cream/80 sm:block">{ready ? 'Valor: a definir. Nada é contratado nesta demonstração.' : 'Os passos 3 e 4 são opcionais.'}</p>
+          <p className="truncate text-[15px] font-semibold">{ready ? `${profile?.short} · ${s.needs.length} foco${s.needs.length > 1 ? 's' : ''} · Total ${brl(precoFinal(mod.id, s.desconto))}` : 'Escolha um perfil e ao menos um foco'}</p>
+          <p className="mt-0.5 hidden text-[13px] text-cream/80 sm:block">{ready ? 'Nada é cobrado nesta demonstração.' : 'Os passos 4 e 5 são opcionais.'}</p>
         </div>
         <Button variant="accent" size="lg" arrow disabled={!ready} onClick={onContinue} className="max-sm:h-12 max-sm:w-full">Continuar para o checkout</Button>
       </div>
@@ -166,6 +198,7 @@ export function StartPanel({ onContinue, compact = false }: { onContinue: () => 
     </div>
   )
 
+  if (selectorsOnly) return (<div ref={selRef}>{selectors}<div ref={barWrap} className="mt-8" style={floating ? { height: h } : undefined}>{bar}</div></div>)
   if (compact) return (<div>{selectors}<div className="mt-8"><h3 className="mb-4 font-display text-2xl">Sua solicitação</h3><Summary /></div>{bar}</div>)
   return (
     <div className="grid gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-12 lg:gap-14">
